@@ -28,9 +28,9 @@ import (
 	gods_util "github.com/emirpasic/gods/utils"
 	"go.uber.org/atomic"
 
-	"github.com/apache/rocketmq-client-go/v2/internal"
-	"github.com/apache/rocketmq-client-go/v2/primitive"
-	"github.com/apache/rocketmq-client-go/v2/rlog"
+	"github.com/qshuai/rocketmq-client-go/v2/internal"
+	"github.com/qshuai/rocketmq-client-go/v2/primitive"
+	"github.com/qshuai/rocketmq-client-go/v2/rlog"
 )
 
 const (
@@ -111,8 +111,8 @@ func (pq *processQueue) putMessage(messages ...*primitive.MessageExt) {
 	}
 
 	if len(msgs) <= 0 {
-		for idx, item := range messages {
-			msgs[idx] = item.String()
+		for _, item := range messages {
+			msgs = append(msgs, item.String())
 		}
 	}
 	rlog.Debug("PutMessage send message", map[string]interface{}{

@@ -21,11 +21,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/apache/rocketmq-client-go/v2/consumer"
-	"github.com/apache/rocketmq-client-go/v2/errors"
-	"github.com/apache/rocketmq-client-go/v2/internal"
-	"github.com/apache/rocketmq-client-go/v2/primitive"
-	"github.com/apache/rocketmq-client-go/v2/producer"
+	"github.com/qshuai/rocketmq-client-go/v2/consumer"
+	"github.com/qshuai/rocketmq-client-go/v2/errors"
+	"github.com/qshuai/rocketmq-client-go/v2/internal"
+	"github.com/qshuai/rocketmq-client-go/v2/primitive"
+	"github.com/qshuai/rocketmq-client-go/v2/producer"
 )
 
 type Producer interface {

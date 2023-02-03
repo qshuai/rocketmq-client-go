@@ -19,7 +19,7 @@ package internal
 
 import (
 	"context"
-	"github.com/apache/rocketmq-client-go/v2/errors"
+	"github.com/qshuai/rocketmq-client-go/v2/errors"
 	"math/rand"
 	"sort"
 	"strconv"
@@ -31,10 +31,10 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/tidwall/gjson"
 
-	"github.com/apache/rocketmq-client-go/v2/internal/remote"
-	"github.com/apache/rocketmq-client-go/v2/internal/utils"
-	"github.com/apache/rocketmq-client-go/v2/primitive"
-	"github.com/apache/rocketmq-client-go/v2/rlog"
+	"github.com/qshuai/rocketmq-client-go/v2/internal/remote"
+	"github.com/qshuai/rocketmq-client-go/v2/internal/utils"
+	"github.com/qshuai/rocketmq-client-go/v2/primitive"
+	"github.com/qshuai/rocketmq-client-go/v2/rlog"
 )
 
 const (
