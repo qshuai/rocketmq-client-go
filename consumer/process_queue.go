@@ -19,8 +19,8 @@ package consumer
 
 import (
 	"strconv"
+	"strings"
 	"sync"
-
 	"time"
 
 	"github.com/emirpasic/gods/maps/treemap"
@@ -96,16 +96,39 @@ func (pq *processQueue) putMessage(messages ...*primitive.MessageExt) {
 	if len(messages) == 0 {
 		return
 	}
+	msgs := make([]string, 0, len(messages))
 	pq.mutex.Lock()
 	if pq.IsDroppd() {
 		pq.mutex.Unlock()
+		for _, item := range messages {
+			msgs = append(msgs, item.String())
+		}
+		rlog.Debug("ProcessQueue drop", map[string]interface{}{
+			"count": len(messages),
+			"msgs":  strings.Join(msgs, ","),
+		})
 		return
 	}
+
+	if len(msgs) <= 0 {
+		for idx, item := range messages {
+			msgs[idx] = item.String()
+		}
+	}
+	rlog.Debug("PutMessage send message", map[string]interface{}{
+		"chanLength": len(pq.msgCh),
+		"count":      len(messages),
+		"msgs":       strings.Join(msgs, ","),
+	})
 	if !pq.order {
 		select {
 		case <-pq.closeChan:
 			return
 		case pq.msgCh <- messages:
+			rlog.Debug("PutMessage send message", map[string]interface{}{
+				"count": len(messages),
+				"msgs":  strings.Join(msgs, ","),
+			})
 		}
 	}
 	validMessageCount := 0
@@ -113,10 +136,16 @@ func (pq *processQueue) putMessage(messages ...*primitive.MessageExt) {
 		msg := messages[idx]
 		_, found := pq.msgCache.Get(msg.QueueOffset)
 		if found {
+			rlog.Debug("PutMessage has found the offset message", map[string]interface{}{
+				"msg": msg.String(),
+			})
 			continue
 		}
 		_, found = pq.consumingMsgOrderlyTreeMap.Get(msg.QueueOffset)
 		if found {
+			rlog.Debug("PutMessage has found the offset message in orderly", map[string]interface{}{
+				"msg": msg.String(),
+			})
 			continue
 		}
 		pq.msgCache.Put(msg.QueueOffset, msg)
@@ -124,6 +153,9 @@ func (pq *processQueue) putMessage(messages ...*primitive.MessageExt) {
 		pq.queueOffsetMax = msg.QueueOffset
 
 		pq.cachedMsgSize.Add(int64(len(msg.Body)))
+		rlog.Debug("PutMessage local success", map[string]interface{}{
+			"msg": msg.String(),
+		})
 	}
 
 	pq.cachedMsgCount.Add(int64(validMessageCount))
@@ -294,6 +326,13 @@ func (pq *processQueue) getMessages() []*primitive.MessageExt {
 	case <-pq.closeChan:
 		return nil
 	case mq := <-pq.msgCh:
+		msgs := make([]string, len(mq))
+		for idx, item := range mq {
+			msgs[idx] = item.String()
+		}
+		rlog.Debug("GetMessages received message", map[string]interface{}{
+			"msg": strings.Join(msgs, ","),
+		})
 		return mq
 	}
 }

@@ -757,11 +757,11 @@ func (pc *pushConsumer) pullMessage(request *PullRequest) {
 			SuspendTimeoutMillis: 20 * time.Second,
 		}
 		//
-		//if data.ExpType == string(TAG) {
+		// if data.ExpType == string(TAG) {
 		//	pullRequest.SubVersion = 0
-		//} else {
+		// } else {
 		//	pullRequest.SubVersion = data.SubVersion
-		//}
+		// }
 
 		brokerResult := pc.defaultConsumer.tryFindBroker(request.mq)
 		if brokerResult == nil {
@@ -798,7 +798,8 @@ func (pc *pushConsumer) pullMessage(request *PullRequest) {
 
 		switch result.Status {
 		case primitive.PullFound:
-			rlog.Debug(fmt.Sprintf("Topic: %s, QueueId: %d found messages.", request.mq.Topic, request.mq.QueueId), nil)
+			rlog.Debug(fmt.Sprintf("PullMessage FOUND [Topic: %s, broker: %s, QueueId: %d found %d messages, body: %s]",
+				request.mq.Topic, request.mq.BrokerName, request.mq.QueueId, len(result.GetMessageExts()), result.String()), nil)
 			prevRequestOffset := request.nextOffset
 			request.nextOffset = result.NextBeginOffset
 
@@ -810,6 +811,10 @@ func (pc *pushConsumer) pullMessage(request *PullRequest) {
 			if len(msgFounded) != 0 {
 				firstMsgOffset = msgFounded[0].QueueOffset
 				pc.stat.increasePullTPS(pc.consumerGroup, request.mq.Topic, len(msgFounded))
+
+				rlog.Debug("put message", map[string]interface{}{
+					"body": result.String(),
+				})
 				pq.putMessage(msgFounded...)
 			}
 			if result.NextBeginOffset < prevRequestOffset || firstMsgOffset < prevRequestOffset {
@@ -886,31 +891,31 @@ func (pc *pushConsumer) resume() {
 }
 
 func (pc *pushConsumer) ResetOffset(topic string, table map[primitive.MessageQueue]int64) {
-	//topic := cmd.ExtFields["topic"]
-	//group := cmd.ExtFields["group"]
-	//if topic == "" || group == "" {
+	// topic := cmd.ExtFields["topic"]
+	// group := cmd.ExtFields["group"]
+	// if topic == "" || group == "" {
 	//	rlog.Warning("received reset offset command from: %s, but missing params.", from)
 	//	return
-	//}
-	//t, err := strconv.ParseInt(cmd.ExtFields["timestamp"], 10, 64)
-	//if err != nil {
+	// }
+	// t, err := strconv.ParseInt(cmd.ExtFields["timestamp"], 10, 64)
+	// if err != nil {
 	//	rlog.Warning("received reset offset command from: %s, but parse time error: %s", err.Error())
 	//	return
-	//}
-	//rlog.Infof("invoke reset offset operation from broker. brokerAddr=%s, topic=%s, group=%s, timestamp=%v",
+	// }
+	// rlog.Infof("invoke reset offset operation from broker. brokerAddr=%s, topic=%s, group=%s, timestamp=%v",
 	//	from, topic, group, t)
 	//
-	//offsetTable := make(map[MessageQueue]int64, 0)
-	//err = json.Unmarshal(cmd.Body, &offsetTable)
-	//if err != nil {
+	// offsetTable := make(map[MessageQueue]int64, 0)
+	// err = json.Unmarshal(cmd.Body, &offsetTable)
+	// if err != nil {
 	//	rlog.Warning("received reset offset command from: %s, but parse offset table: %s", err.Error())
 	//	return
-	//}
-	//v, exist := c.consumerMap.Load(group)
-	//if !exist {
+	// }
+	// v, exist := c.consumerMap.Load(group)
+	// if !exist {
 	//	rlog.Infof("[reset-offset] consumer dose not exist. group=%s", group)
 	//	return
-	//}
+	// }
 	pc.suspend()
 	defer pc.resume()
 
@@ -977,7 +982,18 @@ func (pc *pushConsumer) consumeInner(ctx context.Context, subMsgs []*primitive.M
 		var container ConsumeResultHolder
 		err := pc.interceptor(ctx, subMsgs, &container, func(ctx context.Context, req, reply interface{}) error {
 			msgs := req.([]*primitive.MessageExt)
+
+			rs := make([]string, len(subMsgs))
+			for idx, item := range subMsgs {
+				rs[idx] = item.String()
+			}
+			rlog.Debug("begin business logic", map[string]interface{}{
+				"msgs": strings.Join(rs, ","),
+			})
 			r, e := callback.f(ctx, msgs...)
+			rlog.Debug("business logic end", map[string]interface{}{
+				"msgs": strings.Join(rs, ","),
+			})
 
 			realReply := reply.(*ConsumeResultHolder)
 			realReply.ConsumeResult = r
@@ -1025,9 +1041,22 @@ func (pc *pushConsumer) consumeMessageCurrently(pq *processQueue, mq *primitive.
 			subMsgs = msgs[count:next]
 			count = next - 1
 		}
+		subs := make([]string, len(subMsgs))
+		for idx, item := range subMsgs {
+			subs[idx] = item.String()
+		}
+		rlog.Debug("ConsumeMessageConcurrently filtered", map[string]interface{}{
+			"count": len(subMsgs),
+			"msgs":  strings.Join(subs, ","),
+		})
 
 		pc.crCh <- struct{}{}
 		go primitive.WithRecover(func() {
+			rlog.Debug("enter consume", map[string]interface{}{
+				"count": len(subMsgs),
+				"msgs":  strings.Join(subs, ","),
+			})
+
 		RETRY:
 			if pq.IsDroppd() {
 				rlog.Info("the message queue not be able to consume, because it was dropped", map[string]interface{}{
@@ -1056,7 +1085,13 @@ func (pc *pushConsumer) consumeMessageCurrently(pq *processQueue, mq *primitive.
 			concurrentCtx.MQ = *mq
 			ctx = primitive.WithConcurrentlyCtx(ctx, concurrentCtx)
 
+			rlog.Debug("ConsumeInner begin", map[string]interface{}{
+				"msgs": strings.Join(subs, ","),
+			})
 			result, err = pc.consumeInner(ctx, subMsgs)
+			rlog.Debug("ConsumeInner end", map[string]interface{}{
+				"msgs": strings.Join(subs, ","),
+			})
 
 			consumeRT := time.Now().Sub(beginTime)
 			if err != nil {
@@ -1202,15 +1237,15 @@ func (pc *pushConsumer) consumeMessageOrderly(pq *processQueue, mq *primitive.Me
 			}
 
 			// just put consumeResult in consumerMessageCtx
-			//interval = time.Now().Sub(beginTime)
-			//consumeReult := SuccessReturn
-			//if interval > pc.option.ConsumeTimeout {
+			// interval = time.Now().Sub(beginTime)
+			// consumeReult := SuccessReturn
+			// if interval > pc.option.ConsumeTimeout {
 			//	consumeReult = TimeoutReturn
-			//} else if SuspendCurrentQueueAMoment == result {
+			// } else if SuspendCurrentQueueAMoment == result {
 			//	consumeReult = FailedReturn
-			//} else if ConsumeSuccess == result {
+			// } else if ConsumeSuccess == result {
 			//	consumeReult = SuccessReturn
-			//}
+			// }
 
 			// process result
 			commitOffset := int64(-1)

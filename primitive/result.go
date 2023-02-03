@@ -19,6 +19,7 @@ package primitive
 
 import (
 	"fmt"
+	"strings"
 )
 
 // SendStatus of message
@@ -118,7 +119,13 @@ func (result *PullResult) GetBody() []byte {
 }
 
 func (result *PullResult) String() string {
-	return ""
+	msgs := make([]string, len(result.messageExts))
+	for idx, item := range result.messageExts {
+		msgs[idx] = item.MsgId
+	}
+
+	return fmt.Sprintf("PullResult [Status: %d NextBeginOffset=%d MinOffset=%d MaxOffset=%d SuggestWhichBrokerId=%d msgs: %s body: %s]",
+		result.Status, result.NextBeginOffset, result.MinOffset, result.MaxOffset, result.SuggestWhichBrokerId, strings.Join(msgs, ","), string(result.body))
 }
 
 func toMessages(messageExts []*MessageExt) []*Message {
