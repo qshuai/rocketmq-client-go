@@ -28,15 +28,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	errors2 "github.com/apache/rocketmq-client-go/v2/errors"
+	errors2 "github.com/qshuai/rocketmq-client-go/v2/errors"
 
 	"github.com/pkg/errors"
 
-	"github.com/apache/rocketmq-client-go/v2/internal"
-	"github.com/apache/rocketmq-client-go/v2/internal/remote"
-	"github.com/apache/rocketmq-client-go/v2/internal/utils"
-	"github.com/apache/rocketmq-client-go/v2/primitive"
-	"github.com/apache/rocketmq-client-go/v2/rlog"
+	"github.com/qshuai/rocketmq-client-go/v2/internal"
+	"github.com/qshuai/rocketmq-client-go/v2/internal/remote"
+	"github.com/qshuai/rocketmq-client-go/v2/internal/utils"
+	"github.com/qshuai/rocketmq-client-go/v2/primitive"
+	"github.com/qshuai/rocketmq-client-go/v2/rlog"
 )
 
 // In most scenarios, this is the mostly recommended usage to consume messages.
@@ -798,7 +798,7 @@ func (pc *pushConsumer) pullMessage(request *PullRequest) {
 
 		switch result.Status {
 		case primitive.PullFound:
-			rlog.Debug(fmt.Sprintf("PullMessage FOUND [Topic: %s, broker: %s, QueueId: %d found %d messages, body: %s]",
+			rlog.Debug(fmt.Sprintf("PullMessage FOUND [Topic: %s, broker: %s, QueueId: %d found %d messages, result: %s]",
 				request.mq.Topic, request.mq.BrokerName, request.mq.QueueId, len(result.GetMessageExts()), result.String()), nil)
 			prevRequestOffset := request.nextOffset
 			request.nextOffset = result.NextBeginOffset
@@ -813,7 +813,7 @@ func (pc *pushConsumer) pullMessage(request *PullRequest) {
 				pc.stat.increasePullTPS(pc.consumerGroup, request.mq.Topic, len(msgFounded))
 
 				rlog.Debug("put message", map[string]interface{}{
-					"body": result.String(),
+					"result": result.String(),
 				})
 				pq.putMessage(msgFounded...)
 			}

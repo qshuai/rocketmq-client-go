@@ -124,8 +124,8 @@ func (result *PullResult) String() string {
 		msgs[idx] = item.MsgId
 	}
 
-	return fmt.Sprintf("PullResult [Status: %d NextBeginOffset=%d MinOffset=%d MaxOffset=%d SuggestWhichBrokerId=%d msgs: %s body: %s]",
-		result.Status, result.NextBeginOffset, result.MinOffset, result.MaxOffset, result.SuggestWhichBrokerId, strings.Join(msgs, ","), string(result.body))
+	return fmt.Sprintf("PullResult [Status: %d NextBeginOffset=%d MinOffset=%d MaxOffset=%d SuggestWhichBrokerId=%d msgs: %s]",
+		result.Status, result.NextBeginOffset, result.MinOffset, result.MaxOffset, result.SuggestWhichBrokerId, strings.Join(msgs, ","))
 }
 
 func toMessages(messageExts []*MessageExt) []*Message {

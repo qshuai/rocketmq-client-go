@@ -19,7 +19,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/apache/rocketmq-client-go/v2/rlog"
+	"github.com/qshuai/rocketmq-client-go/v2/rlog"
 	"os"
 )
 
